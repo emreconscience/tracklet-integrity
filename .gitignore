@@ -1,0 +1,22 @@
+# Never commit match data, people's images or trained weights
+*.csv
+*.mp4
+*.avi
+*.mov
+*.jpg
+*.jpeg
+*.png
+*.pth
+*.pt
+*.npz
+reid_corpus*/
+chimera_report.json
+lens_params.json
+swap_events.json
+.env
+
+__pycache__/
+*.pyc
+reid_finetuned*.json
+.venv/
+.ipynb_checkpoints/

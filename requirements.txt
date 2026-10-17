@@ -1,0 +1,16 @@
+# Identity-integrity detectors (nis_anomaly_detector.py, chimera_detector.py)
+numpy>=1.26
+pandas>=2.0
+opencv-python>=4.8
+ruptures>=1.1
+scipy>=1.11
+scikit-learn>=1.3
+
+# ReID corpus + training (build_reid_corpus.py, reid_finetune_v2.py)
+torch>=2.1
+torchvision>=0.16
+torchreid>=0.2.5
+Pillow>=10.0
+
+# Optional: VLM confirmation step in chimera_detector.py
+# openai>=1.0
