@@ -20,3 +20,6 @@ __pycache__/
 reid_finetuned*.json
 .venv/
 .ipynb_checkpoints/
+
+# README figures
+!assets/*.png
