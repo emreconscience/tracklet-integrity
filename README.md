@@ -45,13 +45,13 @@ python chimera_detector.py --csv demo.csv --out demo_split.csv
 
 Expected: `P-1` and `P-2` are split at frame 600 into `P-1, P-1_B, P-2, P-2_B`; the other four tracks are untouched. Add `--no-swap` to the first command for a control run in which nothing is split.
 
-Your own data: one row per track per frame with `frame_idx, track_id, x_field, y_field` and, if available, ReID / colour embeddings. Column list and options: [docs/DETAILS.md](docs/DETAILS.md#input-format).
+Your own data: one row per track per frame with `frame_idx, track_id, x_field, y_field` and, if available, ReID / colour embeddings. On a pitch other than 40 × 20 m pass its size, e.g. `--pitch-length 105 --pitch-width 68`. Column list and options: [docs/DETAILS.md](docs/DETAILS.md#input-format).
 
 ## Status
 
 - **Works on synthetic data**: planted swaps are split at the exact frame; clean tracks are not split.
 - **Developed on one real amateur 5-a-side match** (two cameras). The thresholds were tuned on that same match, so no accuracy figure is claimed for it.
-- **First test on a full-size pitch is not good yet.** On 60 s of a SoccerTrack v2 match (ByteTrack tracks, no ReID, colour only) the detector split 11 tracks. Checked by eye: **2 were real identity switches, 9 were false alarms**. Most false alarms come from the "two areas of the pitch" signal, whose 10 m threshold was set for a 40 × 20 m pitch; on a 105 × 68 m pitch a player covers that distance in normal play. In the case shown above the split comes 0.9 s after the real switch. Scaling the thresholds with pitch size is the next fix.
+- **Full-size pitch: real switches are found, but too many false alarms.** On two 60 s windows of a SoccerTrack v2 match (ByteTrack tracks, colour only, every split checked by eye) the detector caught **all 4 real identity switches**. With `--pitch-length 105 --pitch-width 68` it also made **9 false splits** (13 tracks split in total); with the default 40 × 20 m settings it made 18. The remaining false alarms: shirt colour drifting with light (4), players who roam very widely (3), and the motion check on approximate positions (2). In the case shown above the split comes 0.4 s after the real switch, and the beige player's track is cut once more without need. [Full numbers](docs/DETAILS.md#full-size-pitch-soccertrack-v2).
 - **Not yet benchmarked** on a public dataset (SportsMOT, SoccerNet-Tracking) or compared with tracklet splitters such as [GTA-Link](https://github.com/sjc042/gta-link). That is the next step.
 - **Known limitation**: a swap at a crossing is only split when two appearance cues (ReID and colour) disagree; see [details](docs/DETAILS.md#status-and-honest-results).
 

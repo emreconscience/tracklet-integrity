@@ -76,6 +76,7 @@ Missing optional columns switch the corresponding signal off.
 | `--high`, `--low` videos | `chimera_detector.py` | only used to cut crops for the VLM vote; the CLI's data signals come from the CSV alone. (An upper-body video HSV signal is available to library users via `detect_chimera_candidates(video_caps=...)`.) |
 | `VLM_BASE_URL`, `VLM_API_KEY`, `VLM_MODEL` (environment or a `.env` file next to the script) | `chimera_detector.py` | enables the VLM vote; without them it is skipped. Needs `pip install openai`. |
 | `lens_params.json` in the working directory: `{"high": {"k1": …}, "low": {"k1": …}}` | both tools that read video | single-coefficient radial undistortion so that crops line up with `bbox_pixel`. If missing, `chimera_detector.py` assumes no distortion and `build_reid_corpus.py` assumes `k1 = -0.5` (the lenses of the original rig). |
+| `--pitch-length`, `--pitch-width` (metres, default 40 × 20) | `chimera_detector.py` | scales the pitch-relative threshold (spatial-bimodality distance) by the ratio of pitch diagonals; physical limits are not scaled. Library users: `set_pitch_size(length, width)`. |
 | `swap_events.json` (`--swap-events`) | `build_reid_corpus.py` | known swaps; crops from shortly before a track's first swap onward go to `review_queue/`. Format in the script's docstring. Skipped if missing. |
 
 ## Repository layout
@@ -106,15 +107,6 @@ docs/DETAILS.md              this file
   the switch is found at the right frame either way, but it is only split when both ReID and shirt
   colour disagree (two votes through the appearance-drift scan); with ReID alone the track is left
   as it is. Making the guard aware of nearby players is an open item.
-- **Full-size pitch, first check (SoccerTrack v2, 60 s from frame 18000 of match 118575, ByteTrack
-  with a COCO YOLO11m detector, shirt-colour histograms only, positions mapped to metres from the
-  pitch outline, so approximate).** 11 splits; all 11 checked by eye on image crops: 2 true identity
-  switches (one tracker ID moving from a blue to a beige player and the reverse), 9 false alarms on
-  tracks that stay on one person (outfield players, a goalkeeper, an assistant referee). The false
-  alarms are mostly the spatial-bimodality signal (>= 10 m, tuned on 40 x 20 m) plus colour drift
-  under changing light. For the true switch in the README figure the split is 0.9 s late (true
-  switch at frame 18650, split at 18672). The tracking and figure scripts for this check are not in
-  the repo because they depend on the full video.
 - **Not done yet:** evaluation on a public benchmark (e.g. SportsMOT / SoccerNet-Tracking) and a
   comparison against existing tracklet splitters (e.g. GTA-Link). That is the obvious next step.
 - **Known rough edges,** left as they are so that the code matches what was tuned: a few
@@ -130,3 +122,41 @@ docs/DETAILS.md              this file
   scripts, so some of them were filtering *for* Kalman predictions instead of real detections.
   Found while preparing this repo; all scripts now use the same convention.
 - **One signal is never enough** for an irreversible operation like splitting an identity.
+
+## Full-size pitch (SoccerTrack v2)
+
+**Data.** Two 60 s windows (frames 18000–19499 and 36000–37499) of match 118575 of
+[SoccerTrack v2](https://github.com/AtomScott/SoccerTrack-v2) (CC BY 4.0), a 105 × 68 m pitch filmed
+as one panorama. Tracks: ByteTrack with a COCO-trained YOLO11m. Appearance: shirt-colour histograms
+only (no ReID). Positions: image coordinates mapped to metres from the pitch outline, so approximate.
+The tracking and evaluation scripts are not in the repo because they need the full video.
+
+**Ground truth.** Every split track, and every track that an independent shirt-colour test flagged
+as changing team, was checked by eye on ten crops spread over the track. Switches between two
+players of the same team are only counted if they were visible in those crops, so some may be missed.
+
+**Pitch scaling.** Before measuring, the "two areas of the pitch" distance (10 m, tuned on 40 × 20 m)
+was made to scale with the pitch diagonal (× 2.80 on 105 × 68 m → 28 m). Physical limits (jump tests,
+the 1.5 m drift guard) are not scaled. The rule was fixed before looking at the second window.
+
+| | default (40 × 20 m) | `--pitch-length 105 --pitch-width 68` |
+|---|---|---|
+| tracks split | 24 | 13 |
+| real switches found (of 4 confirmed) | 4 | 4 |
+| false splits (same person all along) | 18 (+2 unclear) | 9 |
+| share of splits that are real | ~17 % | ~31 % |
+
+Per window (default → scaled): first window 11 → 7 tracks split, 9 → 5 false; second window
+13 → 6 tracks split, 9 (+2 unclear) → 4 false.
+
+**What is still wrong.**
+- The 9 remaining false splits: **shirt-colour drift (4)** – the same shirt looks different in sun and
+  shade, and the colour distance of these false splits (0.48–0.63) overlaps with that of the real
+  switches (0.47–0.89), so no single colour threshold separates them; **wide roaming (3)** – players
+  who cover more than 28 m in a minute still trigger the spatial test; **Kalman NIS (2)** – positions
+  mapped from the panorama are noisy, which produces NIS spikes.
+- Splits can be late and can over-cut: in the README example the real switch is at frame 18650, the
+  split at 18660 (0.4 s late), and the second player's track is cut again at 18776 although it is
+  the same person. (The `split_frame` field in `chimera_report.json` is the first candidate, not
+  necessarily the frame that was applied; the applied frames are the `_B`, `_C` boundaries in the output.)
+- Two windows and four real switches are a small sample; the numbers above are indicative only.

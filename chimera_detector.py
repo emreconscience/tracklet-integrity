@@ -49,6 +49,26 @@ CANDIDATE_MIN_SIGNALS = 2       # CLI: votes needed to split (data signals + VLM
 VLM_MODEL = os.environ.get("VLM_MODEL", "")  # any OpenAI-compatible VLM; empty = VLM step skipped
 VLM_MAX_TOKENS = 3000
 
+# --- Pitch size ---
+# Thresholds were tuned on a 40 x 20 m five-a-side pitch. Only thresholds that
+# describe how far a player normally roams scale with the pitch (by the ratio of
+# pitch diagonals). Physical limits (running speed, body size, the 1.5 m drift
+# guard, the 10/15 m jump tests) do not depend on the pitch and are not scaled.
+REF_PITCH_M = (40.0, 20.0)
+PITCH_M = REF_PITCH_M
+SPATIAL_MIN_CLUSTER_DIST_M = 10.0   # spatial-bimodality cluster distance on REF_PITCH_M
+
+
+def set_pitch_size(length_m: float, width_m: float) -> None:
+    """Set the pitch size (metres) used to scale pitch-relative thresholds."""
+    global PITCH_M
+    PITCH_M = (float(length_m), float(width_m))
+
+
+def pitch_scale() -> float:
+    """Ratio of the current pitch diagonal to the reference (40 x 20 m) diagonal."""
+    return float(np.hypot(*PITCH_M) / np.hypot(*REF_PITCH_M))
+
 # --- PELT recursive split config ---
 # PELT runs on the filtered appearance sequence (only rows that carry an
 # embedding), so sizes below count embeddings, not frames. With roughly one
@@ -1114,13 +1134,15 @@ def _analyze_single_track(
     # --- 0d) Spatial bimodality ---
     # Catches swaps between similarly dressed players (same team) that the
     # appearance signals miss. Stricter than the function defaults: centres
-    # >= 10 m apart and minority cluster >= 20 %.
+    # >= 10 m apart on a 40 x 20 m pitch (scaled with the pitch diagonal, see
+    # pitch_scale) and minority cluster >= 20 %.
     spatial_bimodal = False
     spatial_split = None
     spatial_dist = 0.0
     try:
         spatial_bimodal, spatial_split, spatial_dist = detect_spatial_bimodality(
-            real, min_cluster_dist_m=10.0, min_minority_frac=0.20
+            real, min_cluster_dist_m=SPATIAL_MIN_CLUSTER_DIST_M * pitch_scale(),
+            min_minority_frac=0.20
         )
         if spatial_bimodal and spatial_split is not None:
             if not any(abs(int(s) - int(spatial_split)) <= PELT_MIN_FRAME_SPAN for s in pelt_split_frames):
@@ -2153,8 +2175,15 @@ def main():
                     help="optional video of camera L (crops for the VLM step)")
     ap.add_argument("--out", default="tracks_cleaned.csv",
                     help="output CSV with split tracks (default: tracks_cleaned.csv)")
+    ap.add_argument("--pitch-length", type=float, default=REF_PITCH_M[0],
+                    help="pitch length in metres (default: 40, the pitch the thresholds were tuned on)")
+    ap.add_argument("--pitch-width", type=float, default=REF_PITCH_M[1],
+                    help="pitch width in metres (default: 20)")
     args = ap.parse_args()
     HIGH_VIDEO, LOW_VIDEO = args.high, args.low
+    set_pitch_size(args.pitch_length, args.pitch_width)
+    if pitch_scale() != 1.0:
+        print(f"Pitch {PITCH_M[0]:g} x {PITCH_M[1]:g} m: roaming thresholds scaled x{pitch_scale():.2f}")
 
     print("=" * 60)
     print("CHIMERA DETECTOR")
