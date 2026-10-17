@@ -7,7 +7,7 @@ continues on the wrong player. The track looks continuous, yet every number comp
 (distance, heatmap, sprints) mixes two people. This project takes finished tracks, finds the ones
 that contain more than one identity, and cuts them at the frame where the switch happened.
 
-<img src="assets/real_switch.png" alt="Real match: tracker ID 10 starts on a blue player and ends on a beige one; after splitting, the beige part becomes ID 10-B" width="900">
+<img src="assets/real_switch.png" alt="Real match: the tracker gives number 10 first to a blue player, then to a beige player; after splitting, the beige player gets its own ID" width="900">
 
 *A real case from a public full-pitch match ([SoccerTrack v2](https://github.com/AtomScott/SoccerTrack-v2), CC BY 4.0), tracked with ByteTrack.*
 
