@@ -7,11 +7,15 @@ continues on the wrong player. The track looks continuous, yet every number comp
 (distance, heatmap, sprints) mixes two people. This project takes finished tracks, finds the ones
 that contain more than one identity, and cuts them at the frame where the switch happened.
 
-<img src="assets/demo_crossing.png" alt="Before and after: two tracks that swap identities at a crossing are split at the switch" width="900">
+<img src="assets/real_switch.png" alt="Real match: tracker ID 10 starts on a blue player and ends on a beige one; after splitting, the beige part becomes ID 10-B" width="900">
 
-*Output of the actual detector on synthetic data (reproduce with `python examples/make_figures.py`).*
+*A real case from a public full-pitch match ([SoccerTrack v2](https://github.com/AtomScott/SoccerTrack-v2), CC BY 4.0), tracked with ByteTrack.*
 
 ## How it works
+
+<img src="assets/demo_crossing.png" alt="Synthetic example: two tracks that swap identities at a crossing are split at the switch" width="900">
+
+*The same situation on synthetic data, where the ground truth is known (reproduce with `python examples/make_figures.py`).*
 
 <img src="assets/pipeline.png" alt="Pipeline: five independent signals vote on each track" width="900">
 
@@ -46,7 +50,8 @@ Your own data: one row per track per frame with `frame_idx, track_id, x_field, y
 ## Status
 
 - **Works on synthetic data**: planted swaps are split at the exact frame; clean tracks are not split.
-- **Developed on one real amateur 5-a-side match** (two cameras). The thresholds were tuned on that same match, so no accuracy figure is claimed.
+- **Developed on one real amateur 5-a-side match** (two cameras). The thresholds were tuned on that same match, so no accuracy figure is claimed for it.
+- **First test on a full-size pitch is not good yet.** On 60 s of a SoccerTrack v2 match (ByteTrack tracks, no ReID, colour only) the detector split 11 tracks. Checked by eye: **2 were real identity switches, 9 were false alarms**. Most false alarms come from the "two areas of the pitch" signal, whose 10 m threshold was set for a 40 × 20 m pitch; on a 105 × 68 m pitch a player covers that distance in normal play. In the case shown above the split comes 0.9 s after the real switch. Scaling the thresholds with pitch size is the next fix.
 - **Not yet benchmarked** on a public dataset (SportsMOT, SoccerNet-Tracking) or compared with tracklet splitters such as [GTA-Link](https://github.com/sjc042/gta-link). That is the next step.
 - **Known limitation**: a swap at a crossing is only split when two appearance cues (ReID and colour) disagree; see [details](docs/DETAILS.md#status-and-honest-results).
 

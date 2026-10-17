@@ -106,6 +106,15 @@ docs/DETAILS.md              this file
   the switch is found at the right frame either way, but it is only split when both ReID and shirt
   colour disagree (two votes through the appearance-drift scan); with ReID alone the track is left
   as it is. Making the guard aware of nearby players is an open item.
+- **Full-size pitch, first check (SoccerTrack v2, 60 s from frame 18000 of match 118575, ByteTrack
+  with a COCO YOLO11m detector, shirt-colour histograms only, positions mapped to metres from the
+  pitch outline, so approximate).** 11 splits; all 11 checked by eye on image crops: 2 true identity
+  switches (one tracker ID moving from a blue to a beige player and the reverse), 9 false alarms on
+  tracks that stay on one person (outfield players, a goalkeeper, an assistant referee). The false
+  alarms are mostly the spatial-bimodality signal (>= 10 m, tuned on 40 x 20 m) plus colour drift
+  under changing light. For the true switch in the README figure the split is 0.9 s late (true
+  switch at frame 18650, split at 18672). The tracking and figure scripts for this check are not in
+  the repo because they depend on the full video.
 - **Not done yet:** evaluation on a public benchmark (e.g. SportsMOT / SoccerNet-Tracking) and a
   comparison against existing tracklet splitters (e.g. GTA-Link). That is the obvious next step.
 - **Known rough edges,** left as they are so that the code matches what was tuned: a few
